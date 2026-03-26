@@ -1,0 +1,8 @@
+{
+    "label": "Node.js Internals",
+    "position": 5,
+    "link": {
+      "type": "generated-index",
+      "description": "Internals of Node.js"
+    }
+  }

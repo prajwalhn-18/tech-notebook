@@ -65,10 +65,6 @@ const config = {
       image: 'img/docusaurus-social-card.jpg',
       navbar: {
         title: 'Tech Notebook',
-        logo: {
-          alt: 'My Site Logo',
-          src: 'img/technotebook.svg',
-        },
         items: [
           {
             type: 'docSidebar',

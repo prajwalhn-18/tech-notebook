@@ -263,5 +263,95 @@ A tree is a `graph`, but not all graphs are trees. A tree is a connected graph w
 
 > There are many concepts that is related to trees & graphs. So will be explaining them in their respective sections.
 
+## Limitations of JS
+
+Javascript does have some limitations, especially when using it in an interview for DSA, some of the limitations are:
+
+- No Heap → So you need to Build Once, Reuse Forever
+- Weak Typing
+- No Ordered Map / Set
+- Recursion Limits
+
+> The truth is You don’t need to “overcome” JS. You need to Standardize your patterns so language stops mattering
+
+
+## Building a heap quickly
+
+```js
+
+class MinHeap {
+    constructor() {
+        this.heap = [];
+    }
+
+    size() {
+        return this.heap.length;
+    }
+
+    peek() {
+        return this.heap[0];
+    }
+
+    push(val) {
+        this.heap.push(val);
+        this.bubbleUp();
+    }
+
+    pop() {
+        if (this.size() === 1) {
+            return this.heap.pop();
+        }
+
+        const top = this.heap[0];
+
+        this.heap[0] = this.heap.pop();
+
+        this.bubbleDown();
+
+        return top;
+    }
+
+    bubbleUp() {
+        let i = this.size() - 1;
+
+        while (i > 0) {
+            let parent = Math.floor((i - 1) / 2);
+
+            if (this.heap[parent] < this.heap[i]) {
+                break;
+            }
+
+            [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
+            i = parent;
+        }
+    }
+
+    bubbleDown() {
+        let i = 0;
+        const n = this.size();
+
+        while (true) {
+            let left = 2 * i + 1;
+            let right = 2 * i + 2;
+            let smallest = i;
+
+            if (left < n && this.heap[left] < this.heap[smallest]) {
+                smallest = left;
+            }
+
+            if (right < n && this.heap[right] < this.heap[smallest]) {
+                smallest = right;
+            }
+
+            if (smallest === i) break;
+
+            [this.heap[i], this.heap[smallest]] = [this.heap[smallest], this.heap[i]];
+
+            i = smallest;
+        }
+    }
+}
+```
+
 
 

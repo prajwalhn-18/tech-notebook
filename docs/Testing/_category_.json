@@ -1,8 +1,8 @@
 {
-    "label": "Testing",
-    "position": 7,
-    "link": {
-      "type": "generated-index",
-      "description": "Testing strategies and practices for production-grade software"
-    }
+  "label": "Testing",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Comprehensive testing strategies including unit tests, integration tests, and load testing."
   }
+}

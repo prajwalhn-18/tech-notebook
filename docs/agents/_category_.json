@@ -1,0 +1,8 @@
+{
+  "label": "AI Agents",
+  "position": 11,
+  "link": {
+    "type": "generated-index",
+    "description": "Comprehensive guide to building AI agents from fundamentals to production deployment."
+  }
+}

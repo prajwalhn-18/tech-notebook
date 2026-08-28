@@ -28,3 +28,32 @@
   --ifm-color-primary-lightest: #cac7fc;
   --docusaurus-highlighted-code-line-bg: rgba(112, 100, 243, 0.3);
 }
+
+/* Sidebar styling improvements */
+.theme-doc-sidebar-container {
+  font-size: 0.875rem;
+}
+
+.menu__link {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.menu__list-item-collapsible .menu__link {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.menu__list .menu__list {
+  font-size: 0.8rem;
+}
+
+.menu__list-item:not(:first-child) {
+  margin-top: 0.125rem;
+}
+
+.menu__list {
+  margin-top: 0;
+}

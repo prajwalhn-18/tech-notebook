@@ -1,110 +1,130 @@
 ---
-sidebar_position: 6
+sidebar_position: 2
 ---
 
 ## TypeORM
 
-TypeORM is a TypeScript-first ORM that runs on Node.js and supports PostgreSQL, MySQL, SQLite, and more. It maps TypeScript classes to database tables (the **Active Record** or **Data Mapper** pattern) and generates SQL from your object model.
+TypeORM is a TypeScript/JavaScript ORM (Object-Relational Mapping) that can run in Node.js, Browser, Cordova, PhoneGap, Ionic, React Native, and Electron. It supports PostgreSQL, MySQL, MariaDB, SQLite, MS SQL Server, Oracle, and more.
 
-This doc covers everything an intermediate engineer needs: setup, entities, repositories, relations, migrations, transactions, and QueryBuilder.
+* * *
 
----
+## Installation & Setup
 
-## Setup
+### Install TypeORM
 
 ```bash
-npm install typeorm reflect-metadata
-npm install pg           # or mysql2, better-sqlite3, etc.
+# With PostgreSQL driver
+npm install typeorm pg reflect-metadata
+
+# With MySQL driver
+npm install typeorm mysql2 reflect-metadata
+
+# TypeScript support
+npm install -D @types/node typescript ts-node
 ```
 
-Add to your `tsconfig.json`:
+### Configure tsconfig.json
 
 ```json
 {
   "compilerOptions": {
+    "target": "ES2021",
+    "module": "commonjs",
+    "lib": ["ES2021"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false
-  }
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }
 ```
 
-Import `reflect-metadata` once, at your app entry point (before anything else):
+### Data Source Setup
 
-```ts
-import 'reflect-metadata';
-```
-
----
-
-## DataSource
-
-`DataSource` is the single connection configuration object. Create it once and reuse it.
-
-```ts
+```typescript
 // src/data-source.ts
-import { DataSource } from 'typeorm';
-import { User } from './entity/User';
-import { Order } from './entity/Order';
+import { DataSource } from "typeorm";
+import { User } from "./entities/User";
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DB_HOST ?? 'localhost',
+  type: "postgres",
+  host: "localhost",
   port: 5432,
-  username: process.env.DB_USER ?? 'postgres',
-  password: process.env.DB_PASS ?? '',
-  database: process.env.DB_NAME ?? 'mydb',
-  entities: [User, Order],
-  migrations: ['src/migration/*.ts'],
-  synchronize: false,   // NEVER true in production — use migrations
-  logging: ['query', 'error'],
+  username: "postgres",
+  password: "password",
+  database: "mydb",
+  synchronize: true,  // Auto-create tables (dev only!)
+  logging: true,       // Log SQL queries
+  entities: [User],
+  migrations: ["src/migrations/**/*.ts"],
+  subscribers: [],
+});
+
+// Initialize connection
+AppDataSource.initialize()
+  .then(() => {
+    console.log("Data Source initialized");
+  })
+  .catch((err) => {
+    console.error("Error during Data Source initialization:", err);
+  });
+```
+
+### Environment Variables
+
+```typescript
+// src/data-source.ts with dotenv
+import "dotenv/config";
+import { DataSource } from "typeorm";
+
+export const AppDataSource = new DataSource({
+  type: "postgres",
+  host: process.env.DB_HOST || "localhost",
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  synchronize: process.env.NODE_ENV !== "production",
+  logging: process.env.NODE_ENV === "development",
+  entities: ["src/entities/**/*.ts"],
+  migrations: ["src/migrations/**/*.ts"],
 });
 ```
 
-Initialize at startup:
-
-```ts
-// src/index.ts
-import 'reflect-metadata';
-import { AppDataSource } from './data-source';
-
-AppDataSource.initialize()
-  .then(() => console.log('DB connected'))
-  .catch(err => { console.error(err); process.exit(1); });
-```
-
-> **`synchronize: true`** auto-creates/alters tables on startup — convenient for local dev, **dangerous in production** because it can drop columns or data without warning. Use migrations instead.
-
----
+* * *
 
 ## Entities
 
-An entity is a class decorated with `@Entity()`. Each property maps to a column.
+### Basic Entity
 
-```ts
-// src/entity/User.ts
-import {
-  Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, UpdateDateColumn, Index,
-} from 'typeorm';
+```typescript
+// src/entities/User.ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
-@Entity('users')
+@Entity("users")  // Table name
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 100 })
-  name: string;
+  @Column({ type: "varchar", length: 50, unique: true })
+  username: string;
 
-  @Index({ unique: true })
-  @Column()
+  @Column({ type: "varchar", length: 255, unique: true })
   email: string;
 
-  @Column({ default: true })
-  isActive: boolean;
+  @Column({ type: "text" })
+  passwordHash: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, unknown> | null;
+  @Column({ type: "int", default: 0 })
+  age: number;
+
+  @Column({ type: "boolean", default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -114,93 +134,214 @@ export class User {
 }
 ```
 
-### Common column decorators
+### Column Types
 
-| Decorator | Purpose |
-|---|---|
-| `@PrimaryGeneratedColumn()` | Auto-increment integer PK |
-| `@PrimaryGeneratedColumn('uuid')` | UUID PK |
-| `@Column()` | Regular column |
-| `@Column({ nullable: true })` | Nullable column |
-| `@Column({ default: 0 })` | Column with a default |
-| `@Column({ select: false })` | Excluded from `SELECT *` (e.g., password hash) |
-| `@Index()` | Creates a DB index |
-| `@Index({ unique: true })` | Unique index |
-| `@CreateDateColumn()` | Auto-set on insert |
-| `@UpdateDateColumn()` | Auto-set on update |
-| `@DeleteDateColumn()` | Soft-delete timestamp |
-| `@VersionColumn()` | Optimistic locking counter |
+```typescript
+@Entity()
+export class Product {
+  @PrimaryGeneratedColumn()
+  id: number;
 
----
+  // String types
+  @Column("varchar", { length: 100 })
+  name: string;
 
-## Repositories
+  @Column("text")
+  description: string;
 
-A repository gives you CRUD methods for a specific entity. Get one from your `DataSource`.
+  // Number types
+  @Column("int")
+  stock: number;
 
-```ts
-const userRepo = AppDataSource.getRepository(User);
+  @Column("decimal", { precision: 10, scale: 2 })
+  price: number;
+
+  @Column("float")
+  rating: number;
+
+  // Boolean
+  @Column("boolean", { default: true })
+  available: boolean;
+
+  // Date/Time
+  @Column("date")
+  releaseDate: Date;
+
+  @Column("timestamp")
+  lastModified: Date;
+
+  @Column("timestamptz")  // With timezone (PostgreSQL)
+  publishedAt: Date;
+
+  // JSON (PostgreSQL)
+  @Column("jsonb")
+  metadata: object;
+
+  // Array (PostgreSQL)
+  @Column("text", { array: true })
+  tags: string[];
+
+  @Column("int", { array: true })
+  relatedIds: number[];
+
+  // Enum
+  @Column({
+    type: "enum",
+    enum: ["pending", "processing", "completed", "failed"],
+    default: "pending"
+  })
+  status: string;
+
+  // UUID
+  @Column("uuid")
+  externalId: string;
+}
 ```
 
-### Basic CRUD
+### Column Options
 
-```ts
-// Create & save
-const user = userRepo.create({ name: 'Alice', email: 'alice@example.com' });
-await userRepo.save(user);   // INSERT
+```typescript
+@Entity()
+export class Example {
+  @Column({
+    type: "varchar",
+    length: 100,
+    nullable: false,      // NOT NULL
+    unique: true,         // UNIQUE constraint
+    default: "default",   // Default value
+    comment: "User's display name"
+  })
+  name: string;
 
-// Find by PK
-const found = await userRepo.findOneBy({ id: 1 });
+  @Column({ select: false })  // Exclude from SELECT by default
+  secretKey: string;
 
-// Find with conditions
-const active = await userRepo.findBy({ isActive: true });
-
-// Update — load, mutate, save
-const user = await userRepo.findOneByOrFail({ id: 1 });
-user.name = 'Alice Smith';
-await userRepo.save(user);   // UPDATE
-
-// Partial update without loading
-await userRepo.update({ id: 1 }, { name: 'Alice Smith' });
-
-// Delete
-await userRepo.delete({ id: 1 });
-
-// Soft delete (needs @DeleteDateColumn on entity)
-await userRepo.softDelete({ id: 1 });
-await userRepo.restore({ id: 1 });
+  @Column({ update: false })  // Cannot be updated after insert
+  createdBy: string;
+}
 ```
 
-### find options
+### Primary Keys
 
-```ts
-const orders = await orderRepo.find({
-  where: { status: 'PAID', user: { id: 1 } },
-  relations: { user: true },
-  order: { createdAt: 'DESC' },
-  skip: 0,
-  take: 20,
-  select: { id: true, total: true, createdAt: true },
-});
+```typescript
+// Auto-increment
+@PrimaryGeneratedColumn()
+id: number;
+
+// UUID
+@PrimaryGeneratedColumn("uuid")
+id: string;
+
+// Custom primary key
+@PrimaryColumn()
+customId: string;
+
+// Composite primary key
+@Entity()
+export class OrderItem {
+  @PrimaryColumn()
+  orderId: number;
+
+  @PrimaryColumn()
+  productId: number;
+
+  @Column()
+  quantity: number;
+}
 ```
 
-### findOneOrFail vs findOne
+* * *
 
-```ts
-// Returns null if not found — you must handle null
-const user = await userRepo.findOneBy({ id });
+## Relationships
 
-// Throws EntityNotFoundError if not found — prefer this in service methods
-const user = await userRepo.findOneByOrFail({ id });
+### One-to-Many / Many-to-One
+
+```typescript
+// User has many Posts
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  username: string;
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+}
+
+// Post belongs to User
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @Column()
+  userId: number;
+
+  @ManyToOne(() => User, (user) => user.posts, {
+    onDelete: "CASCADE"  // Delete posts when user is deleted
+  })
+  @JoinColumn({ name: "userId" })
+  user: User;
+}
 ```
 
----
+### Many-to-Many
 
-## Relations
+```typescript
+// User has many Roles, Role has many Users
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-### OneToOne
+  @Column()
+  username: string;
 
-```ts
-@Entity('profiles')
+  @ManyToMany(() => Role, (role) => role.users)
+  @JoinTable({
+    name: "user_roles",  // Junction table name
+    joinColumn: { name: "user_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "role_id", referencedColumnName: "id" }
+  })
+  roles: Role[];
+}
+
+@Entity()
+export class Role {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @ManyToMany(() => User, (user) => user.roles)
+  users: User[];
+}
+```
+
+### One-to-One
+
+```typescript
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  username: string;
+
+  @OneToOne(() => Profile, (profile) => profile.user, {
+    cascade: true  // Save profile when saving user
+  })
+  profile: Profile;
+}
+
+@Entity()
 export class Profile {
   @PrimaryGeneratedColumn()
   id: number;
@@ -208,362 +349,1215 @@ export class Profile {
   @Column()
   bio: string;
 
-  @OneToOne(() => User, user => user.profile)
-  @JoinColumn()                // FK lives on this table
-  user: User;
-}
-
-// In User entity:
-@OneToOne(() => Profile, profile => profile.user)
-profile: Profile;
-```
-
-### OneToMany / ManyToOne
-
-```ts
-// User has many Orders
-@Entity('users')
-export class User {
-  @OneToMany(() => Order, order => order.user)
-  orders: Order[];
-}
-
-// Order belongs to User
-@Entity('orders')
-export class Order {
-  @ManyToOne(() => User, user => user.orders, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: User;
-
   @Column()
-  user_id: number;   // explicit FK column
+  userId: number;
+
+  @OneToOne(() => User, (user) => user.profile)
+  @JoinColumn({ name: "userId" })
+  user: User;
 }
 ```
 
-> The FK always lives on the `@ManyToOne` side. `@OneToMany` alone creates no column.
+### Cascade Options
 
-### ManyToMany
-
-```ts
-@Entity('posts')
-export class Post {
-  @ManyToMany(() => Tag, tag => tag.posts, { cascade: true })
-  @JoinTable()   // creates the join table; put this on the owning side
-  tags: Tag[];
-}
-
-@Entity('tags')
-export class Tag {
-  @ManyToMany(() => Post, post => post.tags)
-  posts: Post[];
-}
-```
-
-### Loading relations
-
-```ts
-// Eager in query options
-const user = await userRepo.findOne({
-  where: { id: 1 },
-  relations: { orders: true, profile: true },
-});
-
-// Eager globally (loads on every find — use sparingly, can cause N+1)
-@ManyToOne(() => User, { eager: true })
+```typescript
+@ManyToOne(() => User, (user) => user.posts, {
+  cascade: true,        // All operations
+  cascade: ["insert"],  // Only on insert
+  cascade: ["update"],  // Only on update
+  cascade: ["remove"],  // Only on delete
+  onDelete: "CASCADE",  // Database-level cascade
+  onUpdate: "CASCADE"
+})
 user: User;
 ```
 
----
+### Eager vs Lazy Loading
 
-## QueryBuilder
+```typescript
+// Eager loading - automatically load relations
+@ManyToOne(() => User, (user) => user.posts, { eager: true })
+user: User;
 
-Use QueryBuilder when `find()` options aren't expressive enough — JOINs, subqueries, aggregations, complex WHERE conditions.
+// Lazy loading - load when accessed (returns Promise)
+@ManyToOne(() => User, (user) => user.posts)
+user: Promise<User>;
 
-```ts
-const repo = AppDataSource.getRepository(Order);
-
-// Select query
-const results = await repo
-  .createQueryBuilder('order')
-  .innerJoinAndSelect('order.user', 'user')
-  .where('order.status = :status', { status: 'PAID' })
-  .andWhere('user.isActive = :active', { active: true })
-  .orderBy('order.createdAt', 'DESC')
-  .skip(0)
-  .take(20)
-  .getMany();
-
-// Count
-const count = await repo
-  .createQueryBuilder('order')
-  .where('order.user_id = :userId', { userId: 5 })
-  .getCount();
-
-// Aggregation
-const stats = await repo
-  .createQueryBuilder('order')
-  .select('order.user_id', 'userId')
-  .addSelect('SUM(order.total)', 'totalSpend')
-  .addSelect('COUNT(*)', 'orderCount')
-  .where('order.status = :status', { status: 'PAID' })
-  .groupBy('order.user_id')
-  .having('SUM(order.total) > :min', { min: 1000 })
-  .getRawMany();
+// Usage with lazy loading
+const post = await postRepository.findOne({ where: { id: 1 } });
+const user = await post.user;  // Separate query
 ```
 
-### Insert / Update / Delete via QueryBuilder
+* * *
 
-```ts
-// Bulk insert
-await AppDataSource
-  .createQueryBuilder()
-  .insert()
-  .into(User)
-  .values([
-    { name: 'Alice', email: 'alice@example.com' },
-    { name: 'Bob',   email: 'bob@example.com' },
-  ])
-  .execute();
+## Repository Pattern
 
-// Bulk update
-await AppDataSource
-  .createQueryBuilder()
-  .update(User)
-  .set({ isActive: false })
-  .where('createdAt < :cutoff', { cutoff: new Date('2023-01-01') })
-  .execute();
+### Basic CRUD Operations
 
-// Delete
-await AppDataSource
-  .createQueryBuilder()
-  .delete()
-  .from(Order)
-  .where('status = :s', { s: 'CANCELLED' })
-  .execute();
+```typescript
+import { AppDataSource } from "./data-source";
+import { User } from "./entities/User";
+
+const userRepository = AppDataSource.getRepository(User);
+
+// CREATE
+const user = userRepository.create({
+  username: "john_doe",
+  email: "john@example.com",
+  passwordHash: "hashed_password"
+});
+await userRepository.save(user);
+
+// Alternative
+const newUser = await userRepository.save({
+  username: "jane_doe",
+  email: "jane@example.com",
+  passwordHash: "hashed_password"
+});
+
+// INSERT multiple
+await userRepository.insert([
+  { username: "user1", email: "user1@example.com", passwordHash: "hash1" },
+  { username: "user2", email: "user2@example.com", passwordHash: "hash2" }
+]);
+
+// READ
+const allUsers = await userRepository.find();
+const activeUsers = await userRepository.find({ where: { isActive: true } });
+const oneUser = await userRepository.findOne({ where: { id: 1 } });
+const userByEmail = await userRepository.findOneBy({ email: "john@example.com" });
+
+// findOneOrFail - throws error if not found
+const user = await userRepository.findOneOrFail({ where: { id: 1 } });
+
+// UPDATE
+await userRepository.update({ id: 1 }, { username: "new_username" });
+
+// Alternative - load, modify, save
+const user = await userRepository.findOneBy({ id: 1 });
+user.username = "updated_name";
+await userRepository.save(user);
+
+// DELETE
+await userRepository.delete({ id: 1 });
+await userRepository.delete({ isActive: false });
+
+// Alternative - load and remove
+const user = await userRepository.findOneBy({ id: 1 });
+await userRepository.remove(user);
+
+// Soft delete (requires @DeleteDateColumn)
+await userRepository.softDelete({ id: 1 });
+await userRepository.restore({ id: 1 });  // Restore soft-deleted
 ```
 
-> Always pass values through named parameters (`:name`) — never interpolate user input into query strings. TypeORM parameterizes them automatically, preventing SQL injection.
+### Find Options
 
----
+```typescript
+// Where conditions
+await userRepository.find({
+  where: { isActive: true }
+});
 
-## Transactions
+// Multiple conditions (AND)
+await userRepository.find({
+  where: { isActive: true, age: 25 }
+});
 
-Use transactions whenever you have multiple writes that must succeed or fail together.
+// OR conditions
+import { In, Not, LessThan, MoreThan, Like } from "typeorm";
 
-### Simple transaction
+await userRepository.find({
+  where: [
+    { username: "john" },
+    { email: "john@example.com" }
+  ]
+});
 
-```ts
-await AppDataSource.transaction(async manager => {
-  const user = manager.create(User, { name: 'Alice', email: 'alice@example.com' });
-  await manager.save(user);
+// Operators
+await userRepository.find({
+  where: {
+    id: In([1, 2, 3, 4]),
+    age: MoreThan(18),
+    username: Not("admin"),
+    email: Like("%@gmail.com")
+  }
+});
 
-  const order = manager.create(Order, { user, total: 99.99, status: 'PAID' });
-  await manager.save(order);
-  // If anything throws, the whole transaction rolls back automatically
+// Select specific columns
+await userRepository.find({
+  select: ["id", "username", "email"]
+});
+
+// Relations
+await userRepository.find({
+  relations: ["posts", "profile"]
+});
+
+// Nested relations
+await userRepository.find({
+  relations: {
+    posts: {
+      comments: true
+    }
+  }
+});
+
+// Order
+await userRepository.find({
+  order: { createdAt: "DESC", username: "ASC" }
+});
+
+// Pagination
+await userRepository.find({
+  skip: 20,   // OFFSET
+  take: 10    // LIMIT
+});
+
+// Combined
+await userRepository.find({
+  where: { isActive: true },
+  relations: ["posts"],
+  select: ["id", "username"],
+  order: { createdAt: "DESC" },
+  take: 10
 });
 ```
 
-### Explicit QueryRunner (more control)
+### Advanced Operators
 
-```ts
+```typescript
+import {
+  In, Not, LessThan, LessThanOrEqual,
+  MoreThan, MoreThanOrEqual, Equal,
+  Like, ILike, Between, Any, IsNull, Raw
+} from "typeorm";
+
+// IN
+await repository.find({ where: { id: In([1, 2, 3]) } });
+
+// NOT
+await repository.find({ where: { status: Not("deleted") } });
+
+// Comparisons
+await repository.find({ where: { age: MoreThanOrEqual(18) } });
+await repository.find({ where: { price: LessThan(100) } });
+
+// LIKE (case-sensitive)
+await repository.find({ where: { email: Like("%@gmail.com") } });
+
+// ILIKE (case-insensitive, PostgreSQL)
+await repository.find({ where: { username: ILike("%john%") } });
+
+// BETWEEN
+await repository.find({ where: { age: Between(18, 65) } });
+
+// IS NULL / IS NOT NULL
+await repository.find({ where: { deletedAt: IsNull() } });
+await repository.find({ where: { deletedAt: Not(IsNull()) } });
+
+// Raw SQL
+await repository.find({
+  where: {
+    age: Raw(alias => `${alias} > 18 AND ${alias} < 65`)
+  }
+});
+```
+
+### Count & Aggregations
+
+```typescript
+// Count
+const count = await userRepository.count();
+const activeCount = await userRepository.count({ where: { isActive: true } });
+const countBy = await userRepository.countBy({ isActive: true });
+
+// Exists
+const exists = await userRepository.exists({ where: { email: "john@example.com" } });
+
+// Sum, Avg, Min, Max (using QueryBuilder - see below)
+const result = await userRepository
+  .createQueryBuilder("user")
+  .select("SUM(user.balance)", "total")
+  .getRawOne();
+```
+
+* * *
+
+## Query Builder
+
+More powerful than find options for complex queries.
+
+### Basic Query Builder
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder("user")
+  .where("user.isActive = :isActive", { isActive: true })
+  .andWhere("user.age > :age", { age: 18 })
+  .orderBy("user.createdAt", "DESC")
+  .getMany();
+
+// Get one
+const user = await userRepository
+  .createQueryBuilder("user")
+  .where("user.id = :id", { id: 1 })
+  .getOne();
+
+// Get count
+const count = await userRepository
+  .createQueryBuilder("user")
+  .where("user.isActive = :isActive", { isActive: true })
+  .getCount();
+
+// Get raw results
+const raw = await userRepository
+  .createQueryBuilder("user")
+  .select("user.country")
+  .addSelect("COUNT(*)", "count")
+  .groupBy("user.country")
+  .getRawMany();
+```
+
+### Joins
+
+```typescript
+const usersWithPosts = await userRepository
+  .createQueryBuilder("user")
+  .leftJoinAndSelect("user.posts", "post")
+  .where("user.isActive = :isActive", { isActive: true })
+  .getMany();
+
+// Join without selecting
+const users = await userRepository
+  .createQueryBuilder("user")
+  .leftJoin("user.posts", "post")
+  .where("post.published = :published", { published: true })
+  .getMany();
+
+// Inner join
+const users = await userRepository
+  .createQueryBuilder("user")
+  .innerJoinAndSelect("user.posts", "post")
+  .getMany();
+
+// Multiple joins
+const posts = await postRepository
+  .createQueryBuilder("post")
+  .leftJoinAndSelect("post.user", "user")
+  .leftJoinAndSelect("post.comments", "comment")
+  .leftJoinAndSelect("comment.author", "author")
+  .getMany();
+```
+
+### Select Specific Fields
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder("user")
+  .select(["user.id", "user.username", "user.email"])
+  .getMany();
+
+// With calculations
+const result = await orderRepository
+  .createQueryBuilder("order")
+  .select("order.userId")
+  .addSelect("COUNT(order.id)", "orderCount")
+  .addSelect("SUM(order.total)", "totalSpent")
+  .groupBy("order.userId")
+  .getRawMany();
+```
+
+### WHERE Conditions
+
+```typescript
+// Parameters (prevents SQL injection)
+const users = await userRepository
+  .createQueryBuilder("user")
+  .where("user.age > :age AND user.country = :country", {
+    age: 18,
+    country: "USA"
+  })
+  .getMany();
+
+// Multiple where conditions
+await userRepository
+  .createQueryBuilder("user")
+  .where("user.isActive = :isActive", { isActive: true })
+  .andWhere("user.age > :age", { age: 18 })
+  .getMany();
+
+// OR conditions
+await userRepository
+  .createQueryBuilder("user")
+  .where("user.username = :username", { username: "john" })
+  .orWhere("user.email = :email", { email: "john@example.com" })
+  .getMany();
+
+// Brackets for complex logic
+await userRepository
+  .createQueryBuilder("user")
+  .where("user.isActive = :isActive", { isActive: true })
+  .andWhere(qb => {
+    qb.where("user.country = :country", { country: "USA" })
+      .orWhere("user.age > :age", { age: 65 });
+  })
+  .getMany();
+// SQL: WHERE isActive = true AND (country = 'USA' OR age > 65)
+
+// IN clause
+await userRepository
+  .createQueryBuilder("user")
+  .where("user.id IN (:...ids)", { ids: [1, 2, 3, 4] })
+  .getMany();
+
+// LIKE
+await userRepository
+  .createQueryBuilder("user")
+  .where("user.email LIKE :pattern", { pattern: "%@gmail.com" })
+  .getMany();
+
+// NULL checks
+await userRepository
+  .createQueryBuilder("user")
+  .where("user.deletedAt IS NULL")
+  .getMany();
+```
+
+### Pagination
+
+```typescript
+const users = await userRepository
+  .createQueryBuilder("user")
+  .skip(20)   // OFFSET
+  .take(10)   // LIMIT
+  .getMany();
+
+// With count for pagination info
+const [users, total] = await userRepository
+  .createQueryBuilder("user")
+  .skip(20)
+  .take(10)
+  .getManyAndCount();
+
+console.log(`Page 3 of ${Math.ceil(total / 10)}`);
+```
+
+### Subqueries
+
+```typescript
+// Subquery in WHERE
+const posts = await postRepository
+  .createQueryBuilder("post")
+  .where(qb => {
+    const subQuery = qb
+      .subQuery()
+      .select("user.id")
+      .from(User, "user")
+      .where("user.isActive = :isActive", { isActive: true })
+      .getQuery();
+    return "post.userId IN " + subQuery;
+  })
+  .getMany();
+
+// Subquery in SELECT
+const users = await userRepository
+  .createQueryBuilder("user")
+  .select("user.username")
+  .addSelect(subQuery => {
+    return subQuery
+      .select("COUNT(post.id)", "count")
+      .from(Post, "post")
+      .where("post.userId = user.id");
+  }, "postCount")
+  .getRawMany();
+```
+
+### Transactions with Query Builder
+
+```typescript
+await AppDataSource.transaction(async manager => {
+  await manager
+    .createQueryBuilder()
+    .update(User)
+    .set({ balance: () => "balance - 100" })
+    .where("id = :id", { id: 1 })
+    .execute();
+
+  await manager
+    .createQueryBuilder()
+    .update(User)
+    .set({ balance: () => "balance + 100" })
+    .where("id = :id", { id: 2 })
+    .execute();
+});
+```
+
+### Raw SQL
+
+```typescript
+// Execute raw query
+const rawData = await AppDataSource.query(
+  "SELECT * FROM users WHERE age > $1",
+  [18]
+);
+
+// Using QueryBuilder
+const users = await userRepository
+  .createQueryBuilder("user")
+  .where("user.age > :age", { age: 18 })
+  .andWhere("LOWER(user.email) LIKE :pattern", { pattern: "%gmail%" })
+  .getMany();
+```
+
+* * *
+
+## Transactions
+
+### Using Transaction Manager
+
+```typescript
+import { AppDataSource } from "./data-source";
+
+await AppDataSource.transaction(async (transactionalEntityManager) => {
+  const user = await transactionalEntityManager.findOneBy(User, { id: 1 });
+  user.balance -= 100;
+  await transactionalEntityManager.save(user);
+
+  const recipient = await transactionalEntityManager.findOneBy(User, { id: 2 });
+  recipient.balance += 100;
+  await transactionalEntityManager.save(recipient);
+
+  // If any error occurs, entire transaction rolls back
+});
+```
+
+### Manual Transaction Control
+
+```typescript
 const queryRunner = AppDataSource.createQueryRunner();
 await queryRunner.connect();
 await queryRunner.startTransaction();
 
 try {
-  await queryRunner.manager.save(User, { name: 'Alice', email: 'a@example.com' });
-  await queryRunner.manager.save(Order, { userId: 1, total: 50 });
+  const user = await queryRunner.manager.findOneBy(User, { id: 1 });
+  user.balance -= 100;
+  await queryRunner.manager.save(user);
+
+  const recipient = await queryRunner.manager.findOneBy(User, { id: 2 });
+  recipient.balance += 100;
+  await queryRunner.manager.save(recipient);
 
   await queryRunner.commitTransaction();
 } catch (err) {
   await queryRunner.rollbackTransaction();
   throw err;
 } finally {
-  await queryRunner.release();   // always release the connection
+  await queryRunner.release();
 }
 ```
 
-Use the explicit `QueryRunner` approach when you need to:
-- Run raw SQL alongside ORM operations
-- Do partial rollbacks with savepoints
-- Span multiple service calls in one transaction
+### Isolation Levels
 
----
+```typescript
+await AppDataSource.transaction(
+  "SERIALIZABLE",  // or "READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ"
+  async (manager) => {
+    // Your transaction code
+  }
+);
+```
+
+* * *
 
 ## Migrations
 
-Migrations are the production-safe way to evolve your schema. Never use `synchronize: true` in production.
+Migrations allow you to version-control database schema changes.
 
-### Generate a migration (from entity diff)
+### Generate Migration
 
 ```bash
-npx typeorm migration:generate src/migration/AddOrderStatus -d src/data-source.ts
+# Generate migration from entity changes
+npm run typeorm migration:generate -- -n CreateUserTable
+
+# Create empty migration
+npm run typeorm migration:create -- -n AddUserRole
 ```
 
-This compares your entities to the current DB schema and generates the SQL diff automatically.
+### package.json Scripts
 
-### Write a migration manually
+```json
+{
+  "scripts": {
+    "typeorm": "typeorm-ts-node-commonjs",
+    "migration:generate": "npm run typeorm -- migration:generate",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert"
+  }
+}
+```
 
-```ts
-// src/migration/1715000000000-AddOrderStatus.ts
-import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
+### Migration File
 
-export class AddOrderStatus1715000000000 implements MigrationInterface {
+```typescript
+// src/migrations/1234567890-CreateUserTable.ts
+import { MigrationInterface, QueryRunner, Table } from "typeorm";
+
+export class CreateUserTable1234567890 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.addColumn('orders', new TableColumn({
-      name: 'status',
-      type: 'varchar',
-      length: '50',
-      default: "'PENDING'",
-    }));
+    await queryRunner.createTable(
+      new Table({
+        name: "users",
+        columns: [
+          {
+            name: "id",
+            type: "int",
+            isPrimary: true,
+            isGenerated: true,
+            generationStrategy: "increment"
+          },
+          {
+            name: "username",
+            type: "varchar",
+            length: "50",
+            isUnique: true
+          },
+          {
+            name: "email",
+            type: "varchar",
+            length: "255",
+            isUnique: true
+          },
+          {
+            name: "created_at",
+            type: "timestamp",
+            default: "now()"
+          }
+        ]
+      }),
+      true
+    );
+
+    // Create index
+    await queryRunner.createIndex("users", {
+      name: "IDX_USER_EMAIL",
+      columnNames: ["email"]
+    });
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropColumn('orders', 'status');
+    await queryRunner.dropTable("users");
   }
 }
 ```
 
-### Run / revert migrations
+### Add Column Migration
+
+```typescript
+import { MigrationInterface, QueryRunner, TableColumn } from "typeorm";
+
+export class AddUserAge1234567891 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.addColumn(
+      "users",
+      new TableColumn({
+        name: "age",
+        type: "int",
+        isNullable: true
+      })
+    );
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropColumn("users", "age");
+  }
+}
+```
+
+### Run Migrations
 
 ```bash
-npx typeorm migration:run -d src/data-source.ts
-npx typeorm migration:revert -d src/data-source.ts   # reverts the last migration
-npx typeorm migration:show -d src/data-source.ts     # shows pending migrations
+# Run all pending migrations
+npm run migration:run
+
+# Revert last migration
+npm run migration:revert
+
+# Show migration status
+npm run typeorm migration:show
 ```
 
-TypeORM tracks applied migrations in the `migrations` table automatically.
+* * *
 
----
+## Advanced Features
 
-## Custom Repository Pattern
+### Soft Delete
 
-For complex query logic, extend the base repository instead of scattering queries across your service layer.
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, DeleteDateColumn } from "typeorm";
 
-```ts
-// src/repository/UserRepository.ts
-import { AppDataSource } from '../data-source';
-import { User } from '../entity/User';
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-export const UserRepository = AppDataSource.getRepository(User).extend({
-  findActiveWithOrders(userId: number) {
-    return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.orders', 'order')
-      .where('user.id = :userId', { userId })
-      .andWhere('user.isActive = true')
-      .getOne();
-  },
+  @Column()
+  username: string;
 
-  async findByEmailOrFail(email: string): Promise<User> {
-    const user = await this.findOneBy({ email });
-    if (!user) throw new Error(`User not found: ${email}`);
-    return user;
-  },
-});
-```
-
-Usage:
-
-```ts
-import { UserRepository } from './repository/UserRepository';
-
-const user = await UserRepository.findActiveWithOrders(1);
-```
-
----
-
-## N+1 Problem
-
-The most common TypeORM performance bug. It happens when you load a list and then access a relation for each row — triggering one query per row.
-
-```ts
-// BAD — N+1 queries
-const users = await userRepo.find();
-for (const user of users) {
-  const orders = await orderRepo.findBy({ user: { id: user.id } });
-  // Each iteration fires a separate SELECT
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
 
-// GOOD — single JOIN query
-const users = await userRepo.find({
-  relations: { orders: true },
+// Usage
+await userRepository.softDelete({ id: 1 });  // Sets deletedAt
+await userRepository.restore({ id: 1 });     // Clears deletedAt
+
+// Find only active
+await userRepository.find();  // Excludes soft-deleted
+
+// Include soft-deleted
+await userRepository.find({ withDeleted: true });
+
+// Find only soft-deleted
+await userRepository.find({ where: { deletedAt: Not(IsNull()) }, withDeleted: true });
+```
+
+### Entity Listeners
+
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, AfterInsert, BeforeUpdate } from "typeorm";
+
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  email: string;
+
+  @Column()
+  passwordHash: string;
+
+  @BeforeInsert()
+  async hashPassword() {
+    // this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
+    console.log("About to insert user");
+  }
+
+  @AfterInsert()
+  logInsert() {
+    console.log(`User ${this.id} created`);
+  }
+
+  @BeforeUpdate()
+  logUpdate() {
+    console.log(`User ${this.id} updating`);
+  }
+}
+```
+
+Available listeners:
+- `@BeforeInsert()`, `@AfterInsert()`
+- `@BeforeUpdate()`, `@AfterUpdate()`
+- `@BeforeRemove()`, `@AfterRemove()`
+- `@AfterLoad()`
+
+### Subscribers
+
+Global event listeners across all entities.
+
+```typescript
+// src/subscribers/UserSubscriber.ts
+import { EventSubscriber, EntitySubscriberInterface, InsertEvent } from "typeorm";
+import { User } from "../entities/User";
+
+@EventSubscriber()
+export class UserSubscriber implements EntitySubscriberInterface<User> {
+  listenTo() {
+    return User;
+  }
+
+  beforeInsert(event: InsertEvent<User>) {
+    console.log(`Before user inserted:`, event.entity);
+  }
+
+  afterInsert(event: InsertEvent<User>) {
+    console.log(`User ${event.entity.id} inserted`);
+  }
+}
+
+// Register in DataSource
+export const AppDataSource = new DataSource({
+  // ...
+  subscribers: [UserSubscriber],
+});
+```
+
+### Tree Entities (Hierarchical Data)
+
+```typescript
+import { Entity, Column, Tree, TreeChildren, TreeParent } from "typeorm";
+
+@Entity()
+@Tree("closure-table")  // or "materialized-path", "nested-set"
+export class Category {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @TreeChildren()
+  children: Category[];
+
+  @TreeParent()
+  parent: Category;
+}
+
+// Usage
+const categoryRepository = AppDataSource.getTreeRepository(Category);
+
+// Get tree
+const trees = await categoryRepository.findTrees();
+
+// Get descendants
+const category = await categoryRepository.findOne({ where: { id: 1 } });
+const descendants = await categoryRepository.findDescendants(category);
+
+// Get ancestors
+const ancestors = await categoryRepository.findAncestors(category);
+```
+
+### View Entities
+
+```typescript
+import { ViewEntity, ViewColumn, DataSource } from "typeorm";
+
+@ViewEntity({
+  expression: (dataSource: DataSource) =>
+    dataSource
+      .createQueryBuilder()
+      .select("user.id", "id")
+      .addSelect("user.username", "username")
+      .addSelect("COUNT(post.id)", "postCount")
+      .from(User, "user")
+      .leftJoin(Post, "post", "post.userId = user.id")
+      .groupBy("user.id")
+})
+export class UserPostCount {
+  @ViewColumn()
+  id: number;
+
+  @ViewColumn()
+  username: string;
+
+  @ViewColumn()
+  postCount: number;
+}
+
+// Usage
+const stats = await AppDataSource.getRepository(UserPostCount).find();
+```
+
+* * *
+
+## Performance Optimization
+
+### Eager Loading vs Lazy Loading vs Explicit Loading
+
+```typescript
+// 1. Eager loading (automatic, use sparingly)
+@ManyToOne(() => User, { eager: true })
+user: User;
+
+// 2. Lazy loading (on-access, returns Promise)
+@ManyToOne(() => User)
+user: Promise<User>;
+
+const post = await postRepository.findOne({ where: { id: 1 } });
+const user = await post.user;  // Separate query (N+1 problem)
+
+// 3. Explicit loading (recommended)
+const posts = await postRepository.find({
+  relations: ["user"]  // Single JOIN query
 });
 
-// ALSO GOOD — QueryBuilder with JOIN
-const users = await userRepo
-  .createQueryBuilder('user')
-  .leftJoinAndSelect('user.orders', 'order')
+// Or with QueryBuilder
+const posts = await postRepository
+  .createQueryBuilder("post")
+  .leftJoinAndSelect("post.user", "user")
   .getMany();
 ```
 
----
+### Avoid N+1 Queries
 
-## Soft Deletes
-
-Add `@DeleteDateColumn()` to an entity and TypeORM will set the timestamp on delete rather than removing the row. All `find` queries automatically filter out soft-deleted rows.
-
-```ts
-@Entity('users')
-export class User {
-  @DeleteDateColumn()
-  deletedAt: Date | null;
+```typescript
+// Bad - N+1 queries
+const users = await userRepository.find();
+for (const user of users) {
+  const posts = await postRepository.find({ where: { userId: user.id } });
+  // Queries: 1 for users + N queries for posts
 }
 
-await userRepo.softDelete({ id: 1 });   // sets deletedAt
-await userRepo.restore({ id: 1 });      // clears deletedAt
+// Good - Single query with JOIN
+const users = await userRepository.find({
+  relations: ["posts"]
+});
+// Single query with JOIN
 
-// Include soft-deleted in query
-const all = await userRepo.find({ withDeleted: true });
+// Or use QueryBuilder
+const users = await userRepository
+  .createQueryBuilder("user")
+  .leftJoinAndSelect("user.posts", "post")
+  .getMany();
 ```
 
----
+### Indexing
 
-## Common Gotchas
+```typescript
+// Single column index
+@Entity()
+@Index("IDX_USER_EMAIL", ["email"])
+export class User {
+  @Column()
+  email: string;
+}
 
-| Gotcha | Fix |
-|---|---|
-| `synchronize: true` in production | Always `false`; use migrations |
-| Forgetting `reflect-metadata` import | Import it once at the top of your entry file |
-| Relation not loaded (returns `undefined`) | Explicitly pass `relations` in `find` or use QueryBuilder JOIN |
-| `save()` on a detached entity creates a duplicate | Load the entity first, then mutate and save |
-| N+1 queries | Use `relations` option or JOIN in QueryBuilder |
-| Raw SQL injection | Never interpolate strings — always use named params (`:name`) |
-| Leaking QueryRunner connections | Always call `queryRunner.release()` in a `finally` block |
-| Missing `@JoinColumn` on owning side | OneToOne and ManyToOne require it on the FK side |
-| `update()` doesn't trigger `@UpdateDateColumn` | It does — but `@BeforeUpdate` hooks are skipped; use `save()` if you need hooks |
+// Unique index
+@Entity()
+export class User {
+  @Column()
+  @Index({ unique: true })
+  email: string;
+}
 
----
+// Composite index
+@Entity()
+@Index("IDX_USER_NAME_AGE", ["firstName", "lastName", "age"])
+export class User {
+  @Column()
+  firstName: string;
 
-## Quick Reference
+  @Column()
+  lastName: string;
 
-```ts
-// Get a repository
-const repo = AppDataSource.getRepository(Entity);
+  @Column()
+  age: number;
+}
 
-// CRUD
-repo.create(data)                 // instantiate (no DB call)
-repo.save(entity)                 // INSERT or UPDATE
-repo.findOneBy({ id })            // SELECT, returns null
-repo.findOneByOrFail({ id })      // SELECT, throws if not found
-repo.findBy({ field: value })     // SELECT multiple
-repo.find({ where, relations, order, skip, take })
-repo.update({ id }, partialData)  // UPDATE without loading
-repo.delete({ id })               // DELETE
-repo.softDelete({ id })           // soft delete
-repo.restore({ id })              // undo soft delete
-repo.count({ where })             // COUNT
+// Partial index (PostgreSQL)
+@Entity()
+@Index("IDX_ACTIVE_USERS", ["username"], { where: "is_active = true" })
+export class User {
+  @Column()
+  username: string;
 
-// QueryBuilder
-repo.createQueryBuilder('alias')
-  .where('alias.field = :val', { val })
-  .innerJoinAndSelect('alias.relation', 'rel')
-  .orderBy('alias.field', 'DESC')
-  .skip(0).take(10)
-  .getMany()     // returns Entity[]
-  .getOne()      // returns Entity | null
-  .getRawMany()  // returns plain objects (for aggregations)
-  .getCount()
-
-// Transaction
-AppDataSource.transaction(async manager => { ... })
+  @Column()
+  isActive: boolean;
+}
 ```
+
+### Batch Operations
+
+```typescript
+// Batch insert
+const users = [
+  { username: "user1", email: "user1@example.com" },
+  { username: "user2", email: "user2@example.com" },
+  { username: "user3", email: "user3@example.com" }
+];
+await userRepository.insert(users);
+
+// Batch update
+await userRepository
+  .createQueryBuilder()
+  .update(User)
+  .set({ isActive: false })
+  .where("lastLogin < :date", { date: new Date("2020-01-01") })
+  .execute();
+
+// Bulk delete
+await userRepository
+  .createQueryBuilder()
+  .delete()
+  .from(User)
+  .where("isActive = :isActive", { isActive: false })
+  .execute();
+```
+
+### Caching
+
+```typescript
+// Enable query result caching
+const users = await userRepository.find({
+  where: { isActive: true },
+  cache: true  // Cache for default duration
+});
+
+// Cache with custom duration (milliseconds)
+const users = await userRepository.find({
+  where: { isActive: true },
+  cache: 60000  // 1 minute
+});
+
+// Cache with identifier (for clearing later)
+const users = await userRepository.find({
+  where: { isActive: true },
+  cache: {
+    id: "active_users",
+    milliseconds: 60000
+  }
+});
+
+// Clear cache
+await AppDataSource.queryResultCache.remove(["active_users"]);
+
+// Configure caching in DataSource
+export const AppDataSource = new DataSource({
+  // ...
+  cache: {
+    type: "redis",
+    options: {
+      host: "localhost",
+      port: 6379
+    }
+  }
+});
+```
+
+* * *
+
+## Testing
+
+### Setup Test Database
+
+```typescript
+// src/test-utils/setup.ts
+import { DataSource } from "typeorm";
+import { User } from "../entities/User";
+
+export const TestDataSource = new DataSource({
+  type: "postgres",
+  host: "localhost",
+  port: 5432,
+  username: "postgres",
+  password: "password",
+  database: "test_db",
+  synchronize: true,  // Auto-create tables for testing
+  dropSchema: true,   // Drop schema on each run
+  entities: [User],
+  logging: false
+});
+
+beforeAll(async () => {
+  await TestDataSource.initialize();
+});
+
+afterAll(async () => {
+  await TestDataSource.destroy();
+});
+```
+
+### Test Example
+
+```typescript
+// src/__tests__/user.test.ts
+import { TestDataSource } from "../test-utils/setup";
+import { User } from "../entities/User";
+
+describe("User Entity", () => {
+  let userRepository: Repository<User>;
+
+  beforeAll(async () => {
+    await TestDataSource.initialize();
+    userRepository = TestDataSource.getRepository(User);
+  });
+
+  afterAll(async () => {
+    await TestDataSource.destroy();
+  });
+
+  beforeEach(async () => {
+    await userRepository.clear();  // Clear before each test
+  });
+
+  it("should create a user", async () => {
+    const user = userRepository.create({
+      username: "testuser",
+      email: "test@example.com",
+      passwordHash: "hashed"
+    });
+
+    const savedUser = await userRepository.save(user);
+
+    expect(savedUser.id).toBeDefined();
+    expect(savedUser.username).toBe("testuser");
+  });
+
+  it("should find user by email", async () => {
+    await userRepository.save({
+      username: "john",
+      email: "john@example.com",
+      passwordHash: "hashed"
+    });
+
+    const user = await userRepository.findOneBy({ email: "john@example.com" });
+
+    expect(user).toBeDefined();
+    expect(user.username).toBe("john");
+  });
+});
+```
+
+* * *
+
+## Best Practices
+
+### 1. Use synchronize: false in Production
+
+```typescript
+export const AppDataSource = new DataSource({
+  // ...
+  synchronize: process.env.NODE_ENV !== "production",  // Only in dev
+});
+```
+
+### 2. Use Migrations in Production
+
+```bash
+npm run migration:run
+```
+
+### 3. Explicit Column Names
+
+```typescript
+@Column({ name: "first_name" })
+firstName: string;
+```
+
+### 4. Use Transactions for Related Operations
+
+```typescript
+await AppDataSource.transaction(async manager => {
+  await manager.save(user);
+  await manager.save(profile);
+});
+```
+
+### 5. Avoid Select *
+
+```typescript
+// Instead of
+const users = await userRepository.find();
+
+// Use
+const users = await userRepository.find({
+  select: ["id", "username", "email"]
+});
+```
+
+### 6. Connection Pooling
+
+See the [Connection Pools & PostgreSQL Internals](./ConnectionPools.md) guide.
+
+### 7. Use DTOs for Input Validation
+
+```typescript
+// dto/create-user.dto.ts
+export class CreateUserDto {
+  username: string;
+  email: string;
+  password: string;
+}
+
+// Validate before passing to repository
+```
+
+### 8. Handle Errors Properly
+
+```typescript
+try {
+  await userRepository.save(user);
+} catch (error) {
+  if (error.code === "23505") {  // Unique violation
+    throw new Error("Email already exists");
+  }
+  throw error;
+}
+```
+
+* * *
+
+## Common Patterns
+
+### Repository Pattern Extension
+
+```typescript
+// src/repositories/UserRepository.ts
+import { EntityRepository, Repository } from "typeorm";
+import { User } from "../entities/User";
+
+export class UserRepository extends Repository<User> {
+  async findByEmail(email: string): Promise<User | null> {
+    return this.findOne({ where: { email } });
+  }
+
+  async findActiveUsers(): Promise<User[]> {
+    return this.find({ where: { isActive: true } });
+  }
+
+  async getTotalBalance(): Promise<number> {
+    const result = await this
+      .createQueryBuilder("user")
+      .select("SUM(user.balance)", "total")
+      .getRawOne();
+    return parseFloat(result.total) || 0;
+  }
+}
+
+// Use custom repository
+const userRepository = AppDataSource.getRepository(User).extend(UserRepository);
+const user = await userRepository.findByEmail("john@example.com");
+```
+
+### Service Layer
+
+```typescript
+// src/services/UserService.ts
+import { AppDataSource } from "../data-source";
+import { User } from "../entities/User";
+
+export class UserService {
+  private userRepository = AppDataSource.getRepository(User);
+
+  async createUser(username: string, email: string, password: string): Promise<User> {
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new Error("Email already exists");
+    }
+
+    const user = this.userRepository.create({
+      username,
+      email,
+      passwordHash: password  // Should hash in real app
+    });
+
+    return await this.userRepository.save(user);
+  }
+
+  async getUserById(id: number): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: { id },
+      relations: ["posts", "profile"]
+    });
+  }
+}
+```
+
+* * *
+
+## Resources
+
+- Official Docs: https://typeorm.io/
+- GitHub: https://github.com/typeorm/typeorm
+- See also: [PostgreSQL](./PostgreSQL.md), [Connection Pools & PostgreSQL Internals](./ConnectionPools.md)

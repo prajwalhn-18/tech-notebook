@@ -1,0 +1,8 @@
+{
+  "label": "Distributed Systems",
+  "position": 10,
+  "link": {
+    "type": "generated-index",
+    "description": "Comprehensive guide to distributed systems concepts essential for building and operating systems at serious scale. From CAP theorem to exactly-once semantics."
+  }
+}

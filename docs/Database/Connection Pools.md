@@ -2439,7 +2439,7 @@ SHOW work_mem;
 ## Further Reading
 
 - [PostgreSQL](./PostgreSQL.md) - Core PostgreSQL concepts
-- [TypeORM](./TypeORM.md) - ORM with connection pooling
+- [TypeORM](./typeorm.md) - ORM with connection pooling
 - [Query Optimization](./Query%20Optimization.md) - Query performance
 - [Replication & Scaling](./Replication%20&%20Scaling.md) - Scaling strategies
 

@@ -1458,7 +1458,7 @@ const users = await userRepository.find({
 
 ### 6. Connection Pooling
 
-See the [Connection Pools & PostgreSQL Internals](./ConnectionPools.md) guide.
+See the [Connection Pools & PostgreSQL Internals](./Connection Pools.md) guide.
 
 ### 7. Use DTOs for Input Validation
 
@@ -1560,4 +1560,4 @@ export class UserService {
 
 - Official Docs: https://typeorm.io/
 - GitHub: https://github.com/typeorm/typeorm
-- See also: [PostgreSQL](./PostgreSQL.md), [Connection Pools & PostgreSQL Internals](./ConnectionPools.md)
+- See also: [PostgreSQL](./PostgreSQL.md), [Connection Pools & PostgreSQL Internals](./Connection Pools.md)

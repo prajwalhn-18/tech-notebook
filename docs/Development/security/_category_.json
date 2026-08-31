@@ -1,0 +1,8 @@
+{
+  "label": "Security",
+  "position": 11,
+  "link": {
+    "type": "generated-index",
+    "description": "Comprehensive security guide for microservices at scale. From authentication and authorization to secrets management and OWASP Top 10 vulnerabilities."
+  }
+}

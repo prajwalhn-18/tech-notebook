@@ -1,0 +1,8 @@
+{
+  "label": "Reliability Patterns",
+  "position": 9,
+  "link": {
+    "type": "generated-index",
+    "description": "Production-grade reliability patterns that separate toy microservices from battle-tested production systems. Learn timeout strategies, circuit breakers, rate limiting, and graceful degradation."
+  }
+}

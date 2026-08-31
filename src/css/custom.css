@@ -28,3 +28,318 @@
   --ifm-color-primary-lightest: #cac7fc;
   --docusaurus-highlighted-code-line-bg: rgba(112, 100, 243, 0.3);
 }
+
+/* Sidebar styling improvements */
+.theme-doc-sidebar-container {
+  font-size: 0.875rem;
+}
+
+.menu__link {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.menu__list-item-collapsible .menu__link {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.menu__list .menu__list {
+  font-size: 0.8rem;
+}
+
+.menu__list-item:not(:first-child) {
+  margin-top: 0.125rem;
+}
+
+.menu__list {
+  margin-top: 0;
+}
+
+/* Page Animations */
+
+/* Page transition animation */
+article {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Add subtle parallax effect to headings */
+article h1, article h2 {
+  animation: headingFadeIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards;
+}
+
+@keyframes headingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Premium Content Styling */
+
+/* Main content container */
+.theme-doc-markdown {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Typography improvements */
+article p {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+  color: var(--ifm-font-color-base);
+  letter-spacing: 0.01em;
+}
+
+/* Premium heading styles */
+article h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+  margin-top: 2rem;
+  background: linear-gradient(135deg, var(--ifm-color-primary) 0%, var(--ifm-color-primary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+article h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 3rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(112, 100, 243, 0.15);
+  color: var(--ifm-heading-color);
+  letter-spacing: -0.01em;
+}
+
+article h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--ifm-heading-color);
+}
+
+article h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.875rem;
+  color: var(--ifm-color-primary-darker);
+}
+
+/* Enhanced links */
+article a:not(.hash-link) {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+article a:not(.hash-link):hover {
+  color: var(--ifm-color-primary-darker);
+  border-bottom: 1px solid var(--ifm-color-primary);
+}
+
+/* Premium code blocks */
+article pre {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(112, 100, 243, 0.1);
+  margin: 2rem 0;
+  font-size: 0.9rem;
+}
+
+article code {
+  background-color: rgba(112, 100, 243, 0.08);
+  color: var(--ifm-color-primary-darker);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  border: 1px solid rgba(112, 100, 243, 0.12);
+}
+
+article pre code {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-weight: normal;
+}
+
+/* Beautiful blockquotes */
+article blockquote {
+  border-left: 4px solid var(--ifm-color-primary);
+  background: linear-gradient(90deg,
+    rgba(112, 100, 243, 0.05),
+    rgba(112, 100, 243, 0.02)
+  );
+  padding: 1.25rem 1.5rem;
+  margin: 2rem 0;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  box-shadow: 0 2px 8px rgba(112, 100, 243, 0.08);
+}
+
+article blockquote p {
+  margin-bottom: 0.75rem;
+}
+
+article blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Enhanced lists */
+article ul, article ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.75rem;
+}
+
+article li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+article ul li::marker {
+  color: var(--ifm-color-primary);
+}
+
+article ol li::marker {
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+/* Tables */
+article table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+article table thead tr {
+  background: linear-gradient(135deg,
+    var(--ifm-color-primary),
+    var(--ifm-color-primary-light)
+  );
+  color: white;
+}
+
+article table th {
+  padding: 1rem;
+  font-weight: 600;
+  text-align: left;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+article table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+article table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+article table tbody tr:hover {
+  background-color: rgba(112, 100, 243, 0.04);
+}
+
+/* Images */
+article img {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin: 2rem 0;
+  max-width: 100%;
+}
+
+/* Horizontal rule */
+article hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(112, 100, 243, 0.3),
+    transparent
+  );
+  margin: 3rem 0;
+}
+
+/* Add subtle shadow to content */
+.theme-doc-markdown {
+  padding: 2rem;
+  background: var(--ifm-background-color);
+  border-radius: 12px;
+}
+
+/* Improve reading experience in dark mode */
+[data-theme='dark'] article p,
+[data-theme='dark'] article li {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme='dark'] article h1 {
+  background: linear-gradient(135deg, var(--ifm-color-primary) 0%, var(--ifm-color-primary-lighter) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme='dark'] article table thead tr {
+  background: linear-gradient(135deg,
+    var(--ifm-color-primary-darker),
+    var(--ifm-color-primary)
+  );
+}
+
+[data-theme='dark'] article code {
+  background-color: rgba(157, 151, 248, 0.15);
+  color: var(--ifm-color-primary-lighter);
+  border: 1px solid rgba(157, 151, 248, 0.2);
+}
+
+/* First paragraph drop cap effect for premium look */
+article > p:first-of-type::first-letter {
+  font-size: 3.5rem;
+  line-height: 1;
+  float: left;
+  margin: 0.1rem 0.5rem 0 0;
+  font-weight: 700;
+  color: var(--ifm-color-primary);
+}

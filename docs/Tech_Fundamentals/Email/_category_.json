@@ -1,0 +1,8 @@
+{
+  "label": "Email",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Complete understanding of how email works - from protocols to delivery mechanisms."
+  }
+}

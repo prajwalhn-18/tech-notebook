@@ -1,23 +1,160 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
+/* =========================================================
+   HERO
+   ========================================================= */
 
 .heroBanner {
-  padding: 4rem 0;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  padding: 10rem 2rem 8.5rem;
+  background: var(--ifm-background-color);
+  border-bottom: 1px solid var(--ifm-border-color);
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
+.heroContent {
+  max-width: 900px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+[data-theme='dark'] .eyebrow {
+  color: #737373;
+}
+
+.heroTitle {
+  margin: 0 0 2rem;
+  color: var(--ifm-heading-color);
+  font-size: clamp(3rem, 7vw, 5.625rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+  font-weight: 700;
+  letter-spacing: normal;
+
+}
+
+.heroDescription {
+  max-width: 650px;
+  margin: 0 0 2.5rem;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1.125rem;
+  line-height: 1.7;
 }
 
 .buttons {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.buttons .button {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1.3rem;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.buttons .button:hover {
+  transform: translateY(-2px);
+}
+
+.buttons .button--primary {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+.buttons .button--primary:hover {
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .buttons .button--primary {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #111111;
+}
+
+[data-theme='dark'] .buttons .button--primary:hover {
+  background: #e5e5e5;
+  color: #111111;
+}
+
+.buttons .button--outline {
+  color: var(--ifm-heading-color);
+  border-color: var(--ifm-color-emphasis-300);
+  background: transparent;
+}
+
+.buttons .button--outline:hover {
+  background: var(--ifm-color-emphasis-100);
+  color: var(--ifm-heading-color);
+  border-color: var(--ifm-color-emphasis-500);
+}
+
+/* Arrow in button */
+.buttons .button--primary span {
+  font-size: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.buttons .button--primary:hover span {
+  transform: translateX(3px);
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 6.5rem 1.5rem 5.5rem;
+  }
+
+  .heroTitle {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    margin-bottom: 1.5rem;
+  }
+
+  .heroDescription {
+    font-size: 1rem;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .heroBanner {
+    padding: 5rem 1rem 4rem;
+  }
+
+  .eyebrow {
+    margin-bottom: 1rem;
+  }
+
+  .heroTitle {
+    font-size: 2.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .heroDescription {
+    font-size: 0.9375rem;
+    margin-bottom: 2rem;
+  }
+
+  .buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .buttons .button {
+    justify-content: center;
+  }
 }

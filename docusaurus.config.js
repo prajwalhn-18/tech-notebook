@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Tech Notebook',
-  tagline: 'End to End software guide',
+  tagline: 'A comprehensive technical knowledge base from programming fundamentals to advanced software engineering',
   favicon: 'img/technotebook.svg',
 
   // Set the production url of your site here
@@ -70,9 +70,9 @@ const config = {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Guides',
+            label: 'Learn',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
+          // {to: '/blog', label: 'Blog', position: 'left'},
         ],
       },
       footer: {

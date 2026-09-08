@@ -46,7 +46,7 @@ Go beyond surface-level to truly understand how things work.
 ## Choose Your Path
 
 ### Complete Beginner
-New to programming or tech? Start with [Programming Basics](./programming/CPP/01-getting-started).
+New to programming or tech? Start with [Programming Basics](./category/c-programming/).
 
 ### Technology Explorer
 Want to understand how things work? Explore [Technology Fundamentals](./category/technology-fundamentals/).

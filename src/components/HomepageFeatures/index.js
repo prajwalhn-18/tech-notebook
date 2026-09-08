@@ -77,7 +77,7 @@ const LearningPaths = [
     title: 'Start from the beginning',
     description:
       'Build a strong foundation in programming and computer science.',
-    link: '/docs/programming/CPP/01-getting-started',
+    link: '/docs/category/c-programming/',
   },
   {
     number: '02',

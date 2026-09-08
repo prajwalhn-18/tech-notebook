@@ -2,6 +2,7 @@
   "name": "tech-notebook",
   "version": "0.0.0",
   "private": true,
+  "description": "A comprehensive technical knowledge base covering programming fundamentals, technology deep-dives, system design, and software engineering best practices",
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",

@@ -19,3 +19,4 @@ Dockerfile.dev
 !.vscode/*.code-snippets
 
 .docusaurus
+build

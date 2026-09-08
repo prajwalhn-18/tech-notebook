@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+title: Getting Started with C++
+---
+
 # Getting Started with C++
 
 ## What is C++?

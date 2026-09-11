@@ -15,6 +15,10 @@ Patterns aren't evenly distributed. A payments team leans on **Strategy** and **
 Quick Reference Matrix
 =======================
 
+Eight columns don't fit most screens at once — scroll the table horizontally to see every pattern.
+
+<div class="table-scroll">
+
 | Domain | Singleton | Factory | Strategy | Observer | Middleware | Decorator | Repository |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Web backends & APIs | ✓ | ✓ | | | ✓ | | ✓ |
@@ -31,6 +35,8 @@ Quick Reference Matrix
 | IoT & embedded systems | ✓ | ✓ | ✓ | ✓ | | | |
 | Real-time & collaborative systems | | | ✓ | ✓ | ✓ | | |
 | Testing & QA tooling | | ✓ | ✓ | | | ✓ | ✓ |
+
+</div>
 
 Use this as a map, not a rulebook — plenty of real systems break the grid in both directions.
 

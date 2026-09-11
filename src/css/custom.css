@@ -711,3 +711,21 @@ article > p:first-of-type::first-letter {
   font-weight: 700;
   color: var(--ifm-color-primary);
 }
+
+/* =========================================================
+   SIDEBAR TOGGLE POSITIONING
+   By default, the "expand sidebar" arrow is a full-height clickable
+   strip with the icon centered mid-viewport, which reads as a
+   distracting floating arrow while reading. Anchor it to the bottom
+   instead, so it lines up with the "collapse sidebar" button below
+   the menu and both controls live in the same predictable spot.
+   ========================================================= */
+@media (min-width: 997px) {
+  /* !important: the component's own positioning rule is injected in a
+     later CSS chunk than this stylesheet, so it would otherwise win
+     the cascade despite matching specificity. */
+  [class*='expandButton_'] {
+    align-items: flex-end !important;
+    padding-bottom: 14px;
+  }
+}

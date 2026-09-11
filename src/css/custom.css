@@ -611,12 +611,20 @@ article ol li::marker {
 }
 
 /* Tables */
+/* display:block lets a wide table (many columns, or long domain/pattern
+   matrices) scroll horizontally within itself instead of overflowing the
+   page or getting clipped — there's no wrapper div around <table> in the
+   rendered markdown to attach overflow to, so it goes on the table itself. */
 article table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   border-collapse: collapse;
   width: 100%;
   margin: 2rem 0;
   border-radius: 8px;
-  overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
